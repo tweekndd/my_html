@@ -535,16 +535,170 @@
   .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
 
   .choices-area {
-    padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); /* 优化：底部留足 iPhone 底部小黑条的安全高度 */
     border-top: 1px solid var(--border);
     background: var(--surface);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
+    transition: all .3s ease;
+    flex-shrink: 0;
   }
 
-  .choices-label { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 2px; }
+  /* 折叠切换栏 */
+  .choices-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .choices-label { 
+    font-size: 11px; 
+    letter-spacing: 2px; 
+    color: var(--text-muted); 
+  }
+
+  .choices-toggle-icon {
+    font-size: 18px;
+    color: var(--text-muted);
+    transition: transform .3s ease;
+    line-height: 1;
+  }
+
+  /* 折叠时图标旋转 */
+  .choices-area.collapsed .choices-toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  /* 可折叠内容区 */
+  .choices-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 20px calc(16px + env(safe-area-inset-bottom));
+    overflow: hidden;
+    max-height: 600px;
+    transition: max-height .35s ease, padding .35s ease, opacity .25s ease;
+    opacity: 1;
+  }
+
+  .choices-area.collapsed .choices-body {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .choice-list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── 状态弹出面板（手机专用） ── */
+  .stat-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .stat-sheet-overlay.open { display: block; }
+
+  .stat-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 151;
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .stat-sheet-overlay.open .stat-sheet {
+    transform: translateY(0);
+  }
+
+  .stat-sheet-handle {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 8px;
+  }
+  .stat-sheet-handle::before {
+    content: '';
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .stat-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .stat-sheet-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+  .stat-sheet-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    touch-action: manipulation;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+
+  .stat-sheet-section {
+    margin-bottom: 20px;
+  }
+  .stat-sheet-section-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-sheet-name {
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  /* 面板内数值行稍大 */
+  .stat-sheet .stat-row { margin-bottom: 8px; }
+  .stat-sheet .stat-label { font-size: 12px; }
+  .stat-sheet .stat-bar { height: 5px; }
+
+  /* 面板底部操作按钮 */
+  .stat-sheet-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .stat-sheet-actions .icon-btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px 6px;
+  }
 
   .choice-btn {
     background: var(--surface2);
@@ -646,65 +800,20 @@
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
   .modal-actions button { width: auto; padding: 10px 20px; font-size: 13px; }
 
-  /* ── 优化：iPhone 17 窄屏/竖屏流式响应断点 ── */
+  /* ── 移动端（≤890px）：隐藏侧边栏，改为顶栏状态按钮 + 底部弹出面板 ── */
   @media (max-width: 890px) {
     #screen-game { flex-direction: column; }
-    
-    .sidebar { 
-      width: 100%; 
-      min-width: unset; 
-      border-right: none; 
-      border-bottom: 1px solid var(--border); 
-      padding: 10px 14px; 
-      /* 关键修复：允许横向滚动，高度固定，防止冻结 */
-      max-height: 160px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      flex-direction: row;  /* 横排布局 */
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: nowrap;    /* 不换行，触发横滚 */
-    }
-    
-    /* 每一块状态区域变成横排的独立列 */
-    .sidebar > div {
-      flex-shrink: 0;
-      min-width: 110px;
-    }
-    
-    /* 阶段+周数放一起，最窄 */
-    .sidebar > div:nth-child(1),
-    .sidebar > div:nth-child(2) {
-      min-width: 90px;
-    }
-    
-    /* 按钮组横排 */
-    .sidebar > div:last-child {
-      flex-direction: row !important;
-      align-items: center;
-      gap: 6px;
-      margin-top: 0 !important;
-    }
-    
-    .sidebar-title { 
-      padding-bottom: 4px; 
-      margin-bottom: 4px; 
-      font-size: 10px; 
-      white-space: nowrap;
-    }
-    .stat-group { flex-direction: column; gap: 6px; }
-    .stat-row { width: 100%; min-width: 100px; }
-    .stat-label { white-space: nowrap; }
-    .sidebar .icon-btn { 
-      padding: 5px 8px; 
-      font-size: 11px; 
-      white-space: nowrap;
-    }
-    .phase-badge { font-size: 11px; padding: 4px 10px; white-space: nowrap; }
-    .week-info { font-size: 11px; white-space: nowrap; }
-    .ap-dots { gap: 4px; margin-top: 3px; }
-    .ap-dot { width: 8px; height: 8px; }
+    .sidebar { display: none; }
+    .game-topbar { padding: 10px 14px; gap: 8px; }
+    .topbar-title { font-size: 12px; }
+    .story-area { padding: 16px 16px; }
+    .topbar-stat-bar { display: flex !important; }
+  }
+
+  /* 桌面端隐藏移动专属元素 */
+  @media (min-width: 891px) {
+    .topbar-stat-bar { display: none !important; }
+    .stat-sheet-overlay { display: none !important; }
   }
 
   .toast {
@@ -866,6 +975,7 @@
 </div>
 
 <div id="screen-game" class="screen">
+  <!-- 桌面端侧边栏（移动端隐藏） -->
   <div class="sidebar">
     <div>
       <div class="sidebar-title">关系阶段</div>
@@ -955,7 +1065,14 @@
 
   <div class="game-main">
     <div class="game-topbar">
-      <div class="topbar-title" id="topbar-info">危险关系模拟器</div>
+      <!-- 移动端：摘要状态条（点击打开面板） -->
+      <div class="topbar-stat-bar" id="topbar-stat-bar" onclick="openStatSheet()" style="display:none;cursor:pointer;align-items:center;gap:6px;flex:1;overflow:hidden;">
+        <span style="font-size:10px;letter-spacing:1px;color:var(--accent);flex-shrink:0">状态</span>
+        <div id="mini-stats" style="display:flex;gap:6px;overflow:hidden;align-items:center;flex:1;"></div>
+        <span style="font-size:16px;color:var(--text-muted);flex-shrink:0">›</span>
+      </div>
+      <!-- 桌面端：普通标题 -->
+      <div class="topbar-title" id="topbar-info" style="">危险关系模拟器</div>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="nextWeek()">下一周 →</button>
       </div>
@@ -963,14 +1080,85 @@
 
     <div class="story-area" id="story-area"></div>
 
+    <!-- 可折叠的行动区 -->
     <div class="choices-area" id="choices-area">
-      <div class="choices-label">CHOOSE YOUR ACTION · 选择你的行动</div>
-      <div class="choice-list" id="choice-list"></div>
-      <div class="custom-choice">
-        <textarea id="custom-action" placeholder="或者自由输入你的行动……" rows="1"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCustom()}"></textarea>
-        <button class="btn" onclick="sendCustom()">发送</button>
+      <div class="choices-toggle" onclick="toggleChoices()">
+        <span class="choices-label">CHOOSE YOUR ACTION · 选择你的行动</span>
+        <span class="choices-toggle-icon">⌃</span>
       </div>
+      <div class="choices-body" id="choices-body">
+        <div class="choice-list" id="choice-list"></div>
+        <div class="custom-choice">
+          <textarea id="custom-action" placeholder="或者自由输入你的行动……" rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCustom()}"></textarea>
+          <button class="btn" onclick="sendCustom()">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 移动端状态弹出面板 -->
+<div class="stat-sheet-overlay" id="stat-sheet-overlay" onclick="closeStatSheet(event)">
+  <div class="stat-sheet" id="stat-sheet">
+    <div class="stat-sheet-handle"></div>
+    <div class="stat-sheet-header">
+      <span class="stat-sheet-title">角色状态</span>
+      <button class="stat-sheet-close" onclick="closeStatSheet()">×</button>
+    </div>
+
+    <!-- 周/行动点 -->
+    <div class="stat-sheet-section">
+      <div class="stat-sheet-section-title">进度</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text-dim);margin-bottom:6px">
+        <span>第 <strong id="m-week-num" style="color:var(--gold)">1</strong> 周</span>
+        <span>行动点 <strong id="m-ap-num" style="color:var(--gold)">5</strong>/5</span>
+        <span id="m-phase-badge" style="color:var(--accent2);font-size:12px">第一阶段：稳定生活</span>
+      </div>
+      <div class="ap-dots" id="m-ap-dots" style="justify-content:flex-start;margin-top:0"></div>
+    </div>
+
+    <!-- 现任 -->
+    <div class="stat-sheet-section">
+      <div class="stat-sheet-section-title">现任</div>
+      <div class="stat-sheet-name" id="m-partner-name"></div>
+      <div class="stat-group">
+        <div class="stat-row"><div class="stat-label"><span>爱意值</span><span class="stat-val" id="m-v-love">85</span></div><div class="stat-bar"><div class="stat-fill fill-love" id="m-b-love" style="width:85%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>信任值</span><span class="stat-val" id="m-v-trust">90</span></div><div class="stat-bar"><div class="stat-fill fill-trust" id="m-b-trust" style="width:90%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>亲密值</span><span class="stat-val" id="m-v-intimate">80</span></div><div class="stat-bar"><div class="stat-fill fill-intimate" id="m-b-intimate" style="width:80%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>怀疑值</span><span class="stat-val" id="m-v-suspect">5</span></div><div class="stat-bar"><div class="stat-fill fill-suspect" id="m-b-suspect" style="width:5%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>失望值</span><span class="stat-val" id="m-v-disappoint">5</span></div><div class="stat-bar"><div class="stat-fill fill-disappoint" id="m-b-disappoint" style="width:5%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- 危险对象 -->
+    <div class="stat-sheet-section">
+      <div class="stat-sheet-section-title">危险对象</div>
+      <div class="stat-sheet-name" id="m-target-name"></div>
+      <div class="stat-group">
+        <div class="stat-row"><div class="stat-label"><span>心动值</span><span class="stat-val" id="m-v-heart">10</span></div><div class="stat-bar"><div class="stat-fill fill-heart" id="m-b-heart" style="width:10%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>欲望值</span><span class="stat-val" id="m-v-desire">5</span></div><div class="stat-bar"><div class="stat-fill fill-desire" id="m-b-desire" style="width:5%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>依赖值</span><span class="stat-val" id="m-v-depend">0</span></div><div class="stat-bar"><div class="stat-fill fill-depend" id="m-b-depend" style="width:0%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>占有欲</span><span class="stat-val" id="m-v-possess">0</span></div><div class="stat-bar"><div class="stat-fill fill-possess" id="m-b-possess" style="width:0%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>嫉妒值</span><span class="stat-val" id="m-v-jealous">0</span></div><div class="stat-bar"><div class="stat-fill fill-jealous" id="m-b-jealous" style="width:0%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- 玩家状态 -->
+    <div class="stat-sheet-section">
+      <div class="stat-sheet-section-title">玩家状态</div>
+      <div class="stat-group">
+        <div class="stat-row"><div class="stat-label"><span>压力值</span><span class="stat-val" id="m-v-stress">10</span></div><div class="stat-bar"><div class="stat-fill fill-stress" id="m-b-stress" style="width:10%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>愧疚值</span><span class="stat-val" id="m-v-guilt">0</span></div><div class="stat-bar"><div class="stat-fill fill-guilt" id="m-b-guilt" style="width:0%"></div></div></div>
+        <div class="stat-row"><div class="stat-label"><span>伪装值</span><span class="stat-val" id="m-v-mask">50</span></div><div class="stat-bar"><div class="stat-fill fill-mask" id="m-b-mask" style="width:50%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="stat-sheet-actions">
+      <button class="icon-btn" onclick="saveGame()">💾 保存</button>
+      <button class="icon-btn" onclick="loadGame()">📂 读取</button>
+      <button class="icon-btn" onclick="closeStatSheet();confirmRestart()">↩ 重启</button>
     </div>
   </div>
 </div>
@@ -1293,18 +1481,23 @@ function processAIReply(text) {
   if (jsonData?.names) {
     if (jsonData.names.partner) {
       GAME.partnerName = jsonData.names.partner;
-      document.getElementById('partner-name-label').textContent = jsonData.names.partner;
+      const el = document.getElementById('partner-name-label');
+      if (el) el.textContent = jsonData.names.partner;
     }
     if (jsonData.names.target) {
       GAME.targetName = jsonData.names.target;
-      document.getElementById('target-name-label').textContent = jsonData.names.target;
+      const el = document.getElementById('target-name-label');
+      if (el) el.textContent = jsonData.names.target;
     }
     updateTopbar();
   }
 
   if (jsonData?.phase && jsonData.phase !== GAME.phase) {
     GAME.phase = jsonData.phase;
-    document.getElementById('phase-badge').textContent = PHASES[GAME.phase] || '';
+    const pb = document.getElementById('phase-badge');
+    if (pb) pb.textContent = PHASES[GAME.phase] || '';
+    const mpb = document.getElementById('m-phase-badge');
+    if (mpb) mpb.textContent = PHASES[GAME.phase] || '';
   }
 
   GAME.ap = Math.max(0, GAME.ap - 1);
@@ -1454,44 +1647,107 @@ function renderStats() {
     ['stress', s.stress], ['guilt', s.guilt], ['mask', s.mask],
   ];
   for (const [k, v] of pairs) {
+    // 更新桌面侧边栏
     const vEl = document.getElementById('v-' + k);
     const bEl = document.getElementById('b-' + k);
     if (vEl) vEl.textContent = v;
     if (bEl) bEl.style.width = v + '%';
+    // 同步更新移动端弹出面板
+    const mvEl = document.getElementById('m-v-' + k);
+    const mbEl = document.getElementById('m-b-' + k);
+    if (mvEl) mvEl.textContent = v;
+    if (mbEl) mbEl.style.width = v + '%';
   }
+  updateMiniStats();
 }
 
-// 移动端横向侧边栏：根据本次数值变化，滑动到对应的状态列
-function scrollSidebarToChanges(changes) {
-  // 只在移动端（横向 sidebar）才需要自动滚动
-  if (window.innerWidth > 890) return;
-  const sidebar = document.querySelector('.sidebar');
-  if (!sidebar) return;
-
-  // 判断哪个区块有变化：玩家状态（stress/guilt/mask）优先滚到最右；
-  // 危险对象（heart/desire/depend/possess/jealous）次之；否则不动
-  const playerKeys = ['stress', 'guilt', 'mask'];
-  const targetKeys = ['heart', 'desire', 'depend', 'possess', 'jealous'];
-  const hasPlayerChange = playerKeys.some(k => changes[k] !== undefined);
-  const hasTargetChange = targetKeys.some(k => changes[k] !== undefined);
-
-  if (hasPlayerChange) {
-    // 滚到最右显示玩家状态
-    sidebar.scrollTo({ left: sidebar.scrollWidth, behavior: 'smooth' });
-  } else if (hasTargetChange) {
-    // 滚到中间偏右
-    sidebar.scrollTo({ left: sidebar.scrollWidth * 0.6, behavior: 'smooth' });
-  }
+// 移动端顶栏摘要：显示几个关键数值小圆点
+function updateMiniStats() {
+  const miniEl = document.getElementById('mini-stats');
+  if (!miniEl) return;
+  const s = GAME.stats;
+  const items = [
+    { label: '爱', val: s.love, color: '#e87070' },
+    { label: '疑', val: s.suspect, color: '#e8c070' },
+    { label: '心', val: s.heart, color: '#e85070' },
+    { label: '疚', val: s.guilt, color: '#c8c870' },
+  ];
+  miniEl.innerHTML = items.map(i =>
+    `<span style="display:flex;align-items:center;gap:2px;font-size:10px;color:var(--text-dim)">
+      <span style="width:5px;height:5px;border-radius:50%;background:${i.color};display:inline-block;opacity:${0.3 + i.val/100*0.7}"></span>
+      <span style="color:${i.color}">${i.val}</span>
+    </span>`
+  ).join('<span style="color:var(--border)">·</span>');
 }
+
+// 移动端侧边栏滚动（侧边栏已隐藏，此函数保留但无操作）
+function scrollSidebarToChanges(changes) {}
 
 function renderAP() {
-  document.getElementById('ap-num').textContent = GAME.ap;
-  document.getElementById('week-num').textContent = GAME.week;
-  const dots = document.getElementById('ap-dots');
-  dots.innerHTML = Array.from({length: 5}, (_, i) =>
+  // 桌面
+  const apEl = document.getElementById('ap-num');
+  const weekEl = document.getElementById('week-num');
+  const dotsEl = document.getElementById('ap-dots');
+  if (apEl) apEl.textContent = GAME.ap;
+  if (weekEl) weekEl.textContent = GAME.week;
+  if (dotsEl) dotsEl.innerHTML = Array.from({length: 5}, (_, i) =>
+    `<div class="ap-dot ${i < GAME.ap ? 'active' : 'used'}"></div>`
+  ).join('');
+  // 移动端面板
+  const mAp = document.getElementById('m-ap-num');
+  const mWeek = document.getElementById('m-week-num');
+  const mDots = document.getElementById('m-ap-dots');
+  if (mAp) mAp.textContent = GAME.ap;
+  if (mWeek) mWeek.textContent = GAME.week;
+  if (mDots) mDots.innerHTML = Array.from({length: 5}, (_, i) =>
     `<div class="ap-dot ${i < GAME.ap ? 'active' : 'used'}"></div>`
   ).join('');
 }
+
+function updateTopbar() {
+  // 桌面端标题
+  const ti = document.getElementById('topbar-info');
+  if (ti) ti.textContent = `${GAME.partnerName} · ${GAME.targetName} · ${PHASES[GAME.phase]}`;
+  // 移动端面板名字
+  const mp = document.getElementById('m-partner-name');
+  const mt = document.getElementById('m-target-name');
+  const mph = document.getElementById('m-phase-badge');
+  if (mp) mp.textContent = GAME.partnerName;
+  if (mt) mt.textContent = GAME.targetName;
+  if (mph) mph.textContent = PHASES[GAME.phase] || '';
+}
+
+// ── 选项区折叠 ──
+function toggleChoices() {
+  const area = document.getElementById('choices-area');
+  area.classList.toggle('collapsed');
+}
+
+// ── 状态面板开关 ──
+function openStatSheet() {
+  // 先同步名字（有些情况renderStats之前name已更新）
+  const mp = document.getElementById('m-partner-name');
+  const mt = document.getElementById('m-target-name');
+  if (mp && GAME.partnerName) mp.textContent = GAME.partnerName;
+  if (mt && GAME.targetName) mt.textContent = GAME.targetName;
+  document.getElementById('stat-sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStatSheet(e) {
+  // 点击蒙层关闭（不点面板本身）
+  if (e && e.target !== document.getElementById('stat-sheet-overlay')) return;
+  document.getElementById('stat-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// 关闭按钮直接调用（无事件参数）
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.stat-sheet-close')?.addEventListener('click', () => {
+    document.getElementById('stat-sheet-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  });
+});
 
 function addStoryBlock(html) {
   const area = document.getElementById('story-area');
@@ -1515,10 +1771,7 @@ function removeLoadingIndicator() {
   if (el) el.remove();
 }
 
-function updateTopbar() {
-  document.getElementById('topbar-info').textContent =
-    `${GAME.partnerName} · ${GAME.targetName} · ${PHASES[GAME.phase]}`;
-}
+
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1571,9 +1824,14 @@ function loadGame() {
     document.getElementById('story-area').innerHTML = data.storyHTML;
     renderStats();
     renderAP();
-    document.getElementById('phase-badge').textContent = PHASES[GAME.phase] || '';
-    document.getElementById('partner-name-label').textContent = GAME.partnerName;
-    document.getElementById('target-name-label').textContent = GAME.targetName;
+    const pb = document.getElementById('phase-badge');
+    if (pb) pb.textContent = PHASES[GAME.phase] || '';
+    const mpb = document.getElementById('m-phase-badge');
+    if (mpb) mpb.textContent = PHASES[GAME.phase] || '';
+    const pnl = document.getElementById('partner-name-label');
+    if (pnl) pnl.textContent = GAME.partnerName;
+    const tnl = document.getElementById('target-name-label');
+    if (tnl) tnl.textContent = GAME.targetName;
     updateTopbar();
     showToast('✅ 存档已读取');
   } catch(e) {
